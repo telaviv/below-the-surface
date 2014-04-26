@@ -8,16 +8,29 @@ var startGame = function() {
     var gameHeight = tileHeight * tilePixelHeight;
     Crafty.init(gameWidth, gameHeight);
     Crafty.background('green');
-    makeMap();
+    Crafty.e('TileBoard');
 }
 
-var makeMap = function() {
-    for (var x = 0; x < tilePixelWidth; ++x) {
-        for (var y = 0; y < tilePixelHeight; ++y) {
-            Crafty.e('Tile').create(x, y);
+Crafty.c('TileBoard', {
+    init: function() {
+        this.requires('2D, DragEvent');
+        var boardWidth = tileWidth * tilePixelWidth;
+        var boardHeight = tileHeight * tilePixelHeight;
+        this.attr({x: 0, y: 0, w: boardWidth, h: boardHeight});
+        this._makeMap();
+        this.bind('DragStart', function(e) {
+            console.log('Drag Started!\n' + e);
+        });
+    },
+
+    _makeMap: function() {
+        for (var x = 0; x < tilePixelWidth; ++x) {
+            for (var y = 0; y < tilePixelHeight; ++y) {
+                Crafty.e('Tile').create(x, y);
+            }
         }
-    }
-};
+    },
+});
 
 Crafty.c('Tile', {
     init: function() {
@@ -35,6 +48,21 @@ Crafty.c('Tile', {
             y: y * tilePixelHeight,
         });
         return this;
+    }
+});
+
+Crafty.c('DragEvent', {
+    init: function() {
+        this._pressed = false;
+        this.requires('Mouse');
+        this.bind('MouseDown', function(e) {
+            if (this._pressed === true) {
+                console.log("We shouldn't be pressing when we are pressed!");
+                return;
+            }
+            this._pressed = true;
+            this.trigger('DragStart', e);
+        });
     }
 });
 
