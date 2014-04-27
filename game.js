@@ -196,14 +196,24 @@ Crafty.c('TileMap', {
 
 
     reposition: function(reposArgs) {
+        var indexDelta;
         if (reposArgs.direction === 'horizontal') {
-            var indexDelta = this._indexDelta(reposArgs.delta, tilePixelWidth);
+            indexDelta = this._indexDelta(reposArgs.delta, tilePixelWidth);
             this.drag({
                 direction: 'horizontal',
                 index: reposArgs.index,
                 delta: indexDelta * tilePixelWidth
             });
             this._resetRow(reposArgs.index, indexDelta);
+        }
+        else {
+            indexDelta = this._indexDelta(reposArgs.delta, tilePixelHeight);
+            this.drag({
+                direction: 'vertical',
+                index: reposArgs.index,
+                delta: indexDelta * tilePixelHeight
+            });
+            this._resetColumn(reposArgs.index, indexDelta);
         }
     },
 
@@ -214,13 +224,32 @@ Crafty.c('TileMap', {
         }
     },
 
+    _resetColumn: function(xIndex, indexDelta) {
+        var column = this._newVerticalColumn(xIndex, indexDelta);
+        this._map[xIndex] = column;
+    },
+
+    _newVerticalColumn: function(xIndex, indexDelta) {
+        var newColumn = [];
+        for (var y = 0; y < tileHeight; ++y) {
+            var nindex = y + indexDelta;
+            if (nindex < 0) {
+                nindex += tileHeight;
+            } else if (nindex >= tileHeight) {
+                nindex -= tileHeight;
+            }
+            newColumn[nindex] = this._map[xIndex][y];
+        }
+        return newColumn;
+    },
+
     _newHorizontalRow: function(yIndex, indexDelta) {
         var newRow = [];
         for (var x = 0; x < tileWidth; ++x) {
             var nindex = x + indexDelta;
             if (nindex < 0) {
                 nindex += tileWidth;
-            } else if (nindex >= boardWidth) {
+            } else if (nindex >= tileWidth) {
                 nindex -= tileWidth;
             }
             newRow[nindex] = this._map[x][yIndex];
