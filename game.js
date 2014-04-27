@@ -2,6 +2,8 @@ var tilePixelWidth = 64;
 var tilePixelHeight = 64;
 var tileWidth = 15;
 var tileHeight = 8;
+var boardWidth = tilePixelWidth * tileWidth;
+var boardHeight = tileHeight * tilePixelHeight;
 
 var startGame = function() {
     var gameWidth = tileWidth * tilePixelWidth;
@@ -35,8 +37,6 @@ Crafty.c('TileBoard', {
 Crafty.c('DraggableTiles', {
     init: function() {
         this.requires('2D, DragEvent');
-        var boardWidth = tileWidth * tilePixelWidth;
-        var boardHeight = tileHeight * tilePixelHeight;
         this.attr({x: 0, y: 0, w: boardWidth, h: boardHeight});
         this._moving = false;
         this._direction = null;
@@ -191,14 +191,37 @@ Crafty.c('TileMap', {
     drag: function(dragArgs) {
         if (dragArgs.direction === 'horizontal') {
             for(var x = 0; x < tileWidth; ++x) {
-                this._map[x][dragArgs.index].x = tilePixelWidth * x - dragArgs.delta;
+                this._map[x][dragArgs.index].x = this._horizontalPos(x, dragArgs.delta);
             }
         } else {
             for(var y = 0; y < tileHeight; ++y) {
-                this._map[dragArgs.index][y].y = tilePixelHeight * y - dragArgs.delta;
+                this._map[dragArgs.index][y].y = this._verticalPos(y, dragArgs.delta);
             }
         }
+    },
+
+    _horizontalPos: function(index, delta) {
+        var halfWidth = tilePixelWidth / 2;
+        var pos = tilePixelWidth * index - delta;
+        if (pos < -halfWidth) {
+            pos += boardWidth;
+        } else if (pos > (boardWidth - halfWidth)) {
+            pos -= boardWidth;
+        }
+        return pos;
+    },
+
+    _verticalPos: function(index, delta) {
+        var halfHeight = tilePixelHeight / 2;
+        var pos = tilePixelHeight * index - delta;
+        if (pos < -halfHeight) {
+            pos += boardHeight;
+        } else if (pos > (boardHeight - halfHeight)) {
+            pos -= boardHeight;
+        }
+        return pos;
     }
+
 });
 
 
