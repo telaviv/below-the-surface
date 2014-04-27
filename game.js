@@ -27,14 +27,9 @@ Crafty.c('TileBoard', {
             );
         });
         draggable.bind('TileDragging', function(e) {
-            console.log(
-                'TileDragging!: ' +
-                    '{direction: ' + e.direction + ', ' +
-                    'delta: ' + e.delta + ', ' +
-                    'index: ' + e.index + '}'
-            );
+            tiles.drag(e);
         });
-    },
+    }
 });
 
 Crafty.c('DraggableTiles', {
@@ -51,8 +46,8 @@ Crafty.c('DraggableTiles', {
                 console.log("We shouldn't start dragging when we are already dragging!");
                 return;
             }
-            this._start = this._tileConvert(e);
-            this.trigger('TileDragStart', this._start);
+            this._start = e;
+            this.trigger('TileDragStart', this._tileConvert(e));
             this._moving = true;
         });
         this.bind('DragEnd', function(e) {
@@ -80,12 +75,9 @@ Crafty.c('DraggableTiles', {
         });
     },
 
-    _tileConvert: function(m) {
-        return {x: m.x / tilePixelWidth, y: m.y / tilePixelHeight};
-    },
 
     _findDirection: function(m) {
-        var delta = this._tileDelta(m);
+        var delta = this._movementDelta(m);
         if (delta.x === 0 && delta.y === 0) {
             console.log('We are trying to set a direction for a nonmovement.');
         }
@@ -97,28 +89,33 @@ Crafty.c('DraggableTiles', {
     },
 
     _createDraggingEvent: function(m) {
-        var delta = this._tileDelta(m);
+        var delta = this._movementDelta(m);
         if (this._direction === 'horizontal') {
             return {
                 direction: this._direction,
                 delta: delta.x,
-                index: Math.floor(this._start.y)
+                index: Math.floor(this._start.y / tilePixelHeight)
             };
         } else {
             return {
                 direction: this._direction,
                 delta: delta.y,
-                index: Math.floor(this._start.x)};
+                index: Math.floor(this._start.x / tilePixelWidth)
+            };
         }
     },
 
-    _tileDelta: function(m) {
-        var nLoc = this._tileConvert(m);
+    _movementDelta: function(m) {
         return {
-            x: this._start.x - nLoc.x,
-            y: this._start.y - nLoc.y
+            x: this._start.x - m.x,
+            y: this._start.y - m.y
         };
+    },
+
+    _tileConvert: function(m) {
+        return {x: m.x / tilePixelWidth, y: m.y / tilePixelHeight};
     }
+
 
 });
 
@@ -181,12 +178,24 @@ Crafty.c('TileMap', {
 
     _makeMap: function() {
         this._map = [];
-        for (var x = 0; x < tilePixelWidth; ++x) {
-            for (var y = 0; y < tilePixelHeight; ++y) {
+        for (var x = 0; x < tileWidth; ++x) {
+            for (var y = 0; y < tileHeight; ++y) {
                 if (y === 0) {
                     this._map[x] = [];
                 }
                 this._map[x][y] = Crafty.e('Tile').create(x, y);
+            }
+        }
+    },
+
+    drag: function(dragArgs) {
+        if (dragArgs.direction === 'horizontal') {
+            for(var x = 0; x < tileWidth; ++x) {
+                this._map[x][dragArgs.index].x = tilePixelWidth * x - dragArgs.delta;
+            }
+        } else {
+            for(var y = 0; y < tileHeight; ++y) {
+                this._map[dragArgs.index][y].y = tilePixelHeight * y - dragArgs.delta;
             }
         }
     }
