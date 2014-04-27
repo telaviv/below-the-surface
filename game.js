@@ -13,11 +13,12 @@ var startGame = function() {
 
 Crafty.c('TileBoard', {
     init: function() {
-        this.requires('DraggableTileBoard');
-        this.bind('TileDragStart', function(e) {
+        var draggable = Crafty.e('DraggableTiles');
+        var tiles = Crafty.e('TileMap');
+        draggable.bind('TileDragStart', function(e) {
             console.log('TileDragStart: {x: ' + e.x + ', ' + 'y: ' + e.y + '}');
         });
-        this.bind('TileDragEnd', function(e) {
+        draggable.bind('TileDragEnd', function(e) {
             console.log(
                 'TileDragEnd: ' +
                     '{x: ' + e.x + ', ' +
@@ -25,7 +26,7 @@ Crafty.c('TileBoard', {
                     'direction:' + e.direction + '}'
             );
         });
-        this.bind('TileDragging', function(e) {
+        draggable.bind('TileDragging', function(e) {
             console.log(
                 'TileDragging!: ' +
                     '{direction: ' + e.direction + ', ' +
@@ -33,19 +34,10 @@ Crafty.c('TileBoard', {
                     'index: ' + e.index + '}'
             );
         });
-        this._makeMap();
     },
-
-    _makeMap: function() {
-        for (var x = 0; x < tilePixelWidth; ++x) {
-            for (var y = 0; y < tilePixelHeight; ++y) {
-                Crafty.e('Tile').create(x, y);
-            }
-        }
-    }
 });
 
-Crafty.c('DraggableTileBoard', {
+Crafty.c('DraggableTiles', {
     init: function() {
         this.requires('2D, DragEvent');
         var boardWidth = tileWidth * tilePixelWidth;
@@ -124,11 +116,13 @@ Crafty.c('DraggableTileBoard', {
         var nLoc = this._tileConvert(m);
         return {
             x: this._start.x - nLoc.x,
-            y: this._start.y - nLoc.y,
-        }
+            y: this._start.y - nLoc.y
+        };
     }
 
 });
+
+
 
 
 
@@ -139,14 +133,14 @@ Crafty.c('Tile', {
         this.color(randomColor());
         this.attr({
             w: tilePixelWidth,
-            h: tilePixelHeight,
-        })
+            h: tilePixelHeight
+        });
     },
 
     create: function(x, y) {
         this.attr({
             x: x * tilePixelWidth,
-            y: y * tilePixelHeight,
+            y: y * tilePixelHeight
         });
         return this;
     }
@@ -169,7 +163,7 @@ Crafty.c('DragEvent', {
                 console.log("We shouldn't be releasing when we aren't pressed!");
                 return;
             }
-            this._pressed = false
+            this._pressed = false;
             this.trigger('DragEnd', e);
         });
         this.bind('MouseMove', function(e) {
@@ -177,22 +171,41 @@ Crafty.c('DragEvent', {
 
             this.trigger('Dragging', e);
         });
-    },
+    }
 });
+
+Crafty.c('TileMap', {
+    init: function() {
+        this._makeMap();
+    },
+
+    _makeMap: function() {
+        this._map = [];
+        for (var x = 0; x < tilePixelWidth; ++x) {
+            for (var y = 0; y < tilePixelHeight; ++y) {
+                if (y === 0) {
+                    this._map[x] = [];
+                }
+                this._map[x][y] = Crafty.e('Tile').create(x, y);
+            }
+        }
+    }
+});
+
 
 
 var randomColor = function() {
     var random255 = function() {
         return Math.floor(Math.random() * 255);
-    }
+    };
     var r = random255();
     var g = random255();
     var b = random255();
-    return 'rgb(' + r + ', ' + g + ', ' + b + ')'
-}
+    return 'rgb(' + r + ', ' + g + ', ' + b + ')';
+};
 
 var conj = function(obj, k, v) {
     var props = {};
     props[k] = {value: v};
     return Object.create(obj, props);
-}
+};
