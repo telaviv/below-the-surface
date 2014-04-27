@@ -5,13 +5,44 @@ var tileHeight = 8;
 var boardWidth = tilePixelWidth * tileWidth;
 var boardHeight = tileHeight * tilePixelHeight;
 
+var tileRatios = {
+    'Stone': 3,
+    'Fertilizer': 2,
+    'Sunlight': 2,
+    'Water': 2
+};
+
+
 var startGame = function() {
     var gameWidth = tileWidth * tilePixelWidth;
     var gameHeight = tileHeight * tilePixelHeight;
     Crafty.init(gameWidth, gameHeight);
-    Crafty.background('green');
+    Crafty.background('black');
     Crafty.e('TileBoard');
 };
+
+var randomTile = function() {
+    var total = tileRatios.Stone +
+        tileRatios.Fertilizer +
+        tileRatios.Sunlight +
+        tileRatios.Water;
+    var stone = tileRatios.Stone / total;
+    var fertilizer = tileRatios.Fertilizer / total;
+    var sunlight = tileRatios.Sunlight / total;
+
+    var num = Math.random();
+    if (num < stone) {
+        return Crafty.e('Stone');
+    } else if (num < stone + fertilizer) {
+        return Crafty.e('Fertilizer');
+    } else if (num < stone + fertilizer + sunlight) {
+        return Crafty.e('Sunlight');
+    } else {
+        return Crafty.e('Water');
+    }
+};
+
+
 
 Crafty.c('TileBoard', {
     init: function() {
@@ -114,10 +145,6 @@ Crafty.c('DraggableTiles', {
 });
 
 
-
-
-
-
 Crafty.c('Tile', {
     init: function() {
         this.requires('2D, Canvas, Grid, Color');
@@ -134,6 +161,34 @@ Crafty.c('Tile', {
             y: y * tilePixelHeight
         });
         return this;
+    }
+});
+
+Crafty.c('Stone', {
+    init: function() {
+        this.requires('Tile');
+        this.color('#BDB4B3'); //#FF0D00
+    }
+});
+
+Crafty.c('Fertilizer', {
+    init: function() {
+        this.requires('Tile');
+        this.color('#00C618');
+    }
+});
+
+Crafty.c('Sunlight', {
+    init: function() {
+        this.requires('Tile');
+        this.color('#FFFD00');
+    }
+});
+
+Crafty.c('Water', {
+    init: function() {
+        this.requires('Tile');
+        this.color('#104BA9');
     }
 });
 
@@ -177,7 +232,7 @@ Crafty.c('TileMap', {
                 if (y === 0) {
                     this._map[x] = [];
                 }
-                this._map[x][y] = Crafty.e('Tile').create(x, y);
+                this._map[x][y] = randomTile().create(x, y);
             }
         }
     },
