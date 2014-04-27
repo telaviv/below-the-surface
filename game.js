@@ -21,12 +21,7 @@ Crafty.c('TileBoard', {
             console.log('TileDragStart: {x: ' + e.x + ', ' + 'y: ' + e.y + '}');
         });
         draggable.bind('TileDragEnd', function(e) {
-            console.log(
-                'TileDragEnd: ' +
-                    '{x: ' + e.x + ', ' +
-                    'y: ' + e.y + ', ' +
-                    'direction:' + e.direction + '}'
-            );
+            tiles.reposition(e);
         });
         draggable.bind('TileDragging', function(e) {
             tiles.drag(e);
@@ -56,8 +51,7 @@ Crafty.c('DraggableTiles', {
                 return;
             }
             var oldDirection = this._direction;
-            this.trigger('TileDragEnd', conj(
-                this._tileConvert(e), 'direction', oldDirection));
+            this.trigger('TileDragEnd', this._createDraggingEvent(e));
             this._moving = false;
             this._direction = null;
             this._start = null;
@@ -107,8 +101,8 @@ Crafty.c('DraggableTiles', {
 
     _movementDelta: function(m) {
         return {
-            x: this._start.x - m.x,
-            y: this._start.y - m.y
+            x: m.x - this._start.x,
+            y: m.y - this._start.y
         };
     },
 
@@ -190,19 +184,65 @@ Crafty.c('TileMap', {
 
     drag: function(dragArgs) {
         if (dragArgs.direction === 'horizontal') {
-            for(var x = 0; x < tileWidth; ++x) {
+            for (var x = 0; x < tileWidth; ++x) {
                 this._map[x][dragArgs.index].x = this._horizontalPos(x, dragArgs.delta);
             }
         } else {
-            for(var y = 0; y < tileHeight; ++y) {
+            for (var y = 0; y < tileHeight; ++y) {
                 this._map[dragArgs.index][y].y = this._verticalPos(y, dragArgs.delta);
             }
         }
     },
 
+
+    reposition: function(reposArgs) {
+        if (reposArgs.direction === 'horizontal') {
+            var indexDelta = this._indexDelta(reposArgs.delta, tilePixelWidth);
+            this.drag({
+                direction: 'horizontal',
+                index: reposArgs.index,
+                delta: indexDelta * tilePixelWidth
+            });
+            this._resetRow(reposArgs.index, indexDelta);
+        }
+    },
+
+    _resetRow: function(yIndex, indexDelta) {
+        var row = this._newHorizontalRow(yIndex, indexDelta);
+        for (var x = 0; x < tileWidth; ++x) {
+            this._map[x][yIndex] = row[x];
+        }
+    },
+
+    _newHorizontalRow: function(yIndex, indexDelta) {
+        var newRow = [];
+        for (var x = 0; x < tileWidth; ++x) {
+            var nindex = x + indexDelta;
+            if (nindex < 0) {
+                nindex += tileWidth;
+            } else if (nindex >= boardWidth) {
+                nindex -= tileWidth;
+            }
+            newRow[nindex] = this._map[x][yIndex];
+        }
+        return newRow;
+    },
+
+
+    _indexDelta: function(delta, mod) {
+        if (delta === 0) return 0;
+
+        var index = delta / mod;
+        if (index > 0) {
+            return Math.round(index);
+        } else {
+            return -Math.round(Math.abs(index));
+        }
+    },
+
     _horizontalPos: function(index, delta) {
         var halfWidth = tilePixelWidth / 2;
-        var pos = tilePixelWidth * index - delta;
+        var pos = tilePixelWidth * index + delta;
         if (pos < -halfWidth) {
             pos += boardWidth;
         } else if (pos > (boardWidth - halfWidth)) {
@@ -213,7 +253,7 @@ Crafty.c('TileMap', {
 
     _verticalPos: function(index, delta) {
         var halfHeight = tilePixelHeight / 2;
-        var pos = tilePixelHeight * index - delta;
+        var pos = tilePixelHeight * index + delta;
         if (pos < -halfHeight) {
             pos += boardHeight;
         } else if (pos > (boardHeight - halfHeight)) {
@@ -234,10 +274,4 @@ var randomColor = function() {
     var g = random255();
     var b = random255();
     return 'rgb(' + r + ', ' + g + ', ' + b + ')';
-};
-
-var conj = function(obj, k, v) {
-    var props = {};
-    props[k] = {value: v};
-    return Object.create(obj, props);
 };
