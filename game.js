@@ -9,18 +9,31 @@ var startGame = function() {
     Crafty.init(gameWidth, gameHeight);
     Crafty.background('green');
     Crafty.e('TileBoard');
-}
+};
 
 Crafty.c('TileBoard', {
     init: function() {
-        this.requires('2D, DragEvent');
-        var boardWidth = tileWidth * tilePixelWidth;
-        var boardHeight = tileHeight * tilePixelHeight;
-        this.attr({x: 0, y: 0, w: boardWidth, h: boardHeight});
-        this._makeMap();
-        this.bind('DragStart', function(e) {
-            console.log('Drag Started!\n' + e);
+        this.requires('DraggableTileBoard');
+        this.bind('TileDragStart', function(e) {
+            console.log('TileDragStart: {x: ' + e.x + ', ' + 'y: ' + e.y + '}');
         });
+        this.bind('TileDragEnd', function(e) {
+            console.log(
+                'TileDragEnd: ' +
+                    '{x: ' + e.x + ', ' +
+                    'y: ' + e.y + ', ' +
+                    'direction:' + e.direction + '}'
+            );
+        });
+        this.bind('TileDragging', function(e) {
+            console.log(
+                'TileDragging!: ' +
+                    '{direction: ' + e.direction + ', ' +
+                    'delta: ' + e.delta + ', ' +
+                    'index: ' + e.index + '}'
+            );
+        });
+        this._makeMap();
     },
 
     _makeMap: function() {
@@ -29,8 +42,96 @@ Crafty.c('TileBoard', {
                 Crafty.e('Tile').create(x, y);
             }
         }
-    },
+    }
 });
+
+Crafty.c('DraggableTileBoard', {
+    init: function() {
+        this.requires('2D, DragEvent');
+        var boardWidth = tileWidth * tilePixelWidth;
+        var boardHeight = tileHeight * tilePixelHeight;
+        this.attr({x: 0, y: 0, w: boardWidth, h: boardHeight});
+        this._moving = false;
+        this._direction = null;
+        this._start = null;
+        this.bind('DragStart', function(e) {
+            if (this._moving === true) {
+                console.log("We shouldn't start dragging when we are already dragging!");
+                return;
+            }
+            this._start = this._tileConvert(e);
+            this.trigger('TileDragStart', this._start);
+            this._moving = true;
+        });
+        this.bind('DragEnd', function(e) {
+            if (this._moving === false) {
+                console.log("We shouldn't stop dragging when we haven't started!");
+                return;
+            }
+            var oldDirection = this._direction;
+            this.trigger('TileDragEnd', conj(
+                this._tileConvert(e), 'direction', oldDirection));
+            this._moving = false;
+            this._direction = null;
+            this._start = null;
+        });
+        this.bind('Dragging', function(e) {
+            if (this._moving === false) {
+                console.log("We shouldn't stop dragging when we haven't started!");
+                return;
+            }
+            if (this._direction === null) {
+                this._direction = this._findDirection(e);
+            }
+
+            this.trigger('TileDragging', this._createDraggingEvent(e));
+        });
+    },
+
+    _tileConvert: function(m) {
+        return {x: m.x / tilePixelWidth, y: m.y / tilePixelHeight};
+    },
+
+    _findDirection: function(m) {
+        var delta = this._tileDelta(m);
+        if (delta.x === 0 && delta.y === 0) {
+            console.log('We are trying to set a direction for a nonmovement.');
+        }
+        if (Math.abs(delta.x) >= Math.abs(delta.y)) {
+            return 'horizontal';
+        } else {
+            return 'vertical';
+        }
+    },
+
+    _createDraggingEvent: function(m) {
+        var delta = this._tileDelta(m);
+        if (this._direction === 'horizontal') {
+            return {
+                direction: this._direction,
+                delta: delta.x,
+                index: Math.floor(this._start.y)
+            };
+        } else {
+            return {
+                direction: this._direction,
+                delta: delta.y,
+                index: Math.floor(this._start.x)};
+        }
+    },
+
+    _tileDelta: function(m) {
+        var nLoc = this._tileConvert(m);
+        return {
+            x: this._start.x - nLoc.x,
+            y: this._start.y - nLoc.y,
+        }
+    }
+
+});
+
+
+
 
 Crafty.c('Tile', {
     init: function() {
@@ -63,8 +164,22 @@ Crafty.c('DragEvent', {
             this._pressed = true;
             this.trigger('DragStart', e);
         });
-    }
+        this.bind('MouseUp', function(e) {
+            if (this._pressed === false) {
+                console.log("We shouldn't be releasing when we aren't pressed!");
+                return;
+            }
+            this._pressed = false
+            this.trigger('DragEnd', e);
+        });
+        this.bind('MouseMove', function(e) {
+            if (this._pressed === false) return;
+
+            this.trigger('Dragging', e);
+        });
+    },
 });
+
 
 var randomColor = function() {
     var random255 = function() {
@@ -74,4 +189,10 @@ var randomColor = function() {
     var g = random255();
     var b = random255();
     return 'rgb(' + r + ', ' + g + ', ' + b + ')'
+}
+
+var conj = function(obj, k, v) {
+    var props = {};
+    props[k] = {value: v};
+    return Object.create(obj, props);
 }
